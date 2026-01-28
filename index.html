@@ -2,22 +2,23 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>In Development</title>
+  <title>In development</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 
   <style>
     * {
-      margin: 0;
-      padding: 0;
       box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
     }
 
     body {
+      margin: 0;
       height: 100vh;
-      background: radial-gradient(circle at top, #0a1a3a, #020611);
+      background: linear-gradient(180deg, #070d1f 0%, #040814 100%);
+      font-family: 'Inter', sans-serif;
       overflow: hidden;
-      color: white;
+      color: #cfe7ff;
     }
 
     canvas {
@@ -26,47 +27,43 @@
     }
 
     .center {
-      position: absolute;
-      inset: 0;
+      position: relative;
+      z-index: 2;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2;
     }
 
     h1 {
-      font-size: clamp(2.5rem, 6vw, 5rem);
-      letter-spacing: 0.2em;
+      font-size: clamp(2rem, 4.5vw, 3.5rem);
+      font-weight: 400;
+      letter-spacing: 0.35em;
       text-transform: uppercase;
-      color: #8fd3ff;
-      text-shadow:
-        0 0 10px rgba(0, 180, 255, 0.6),
-        0 0 30px rgba(0, 120, 255, 0.4);
-      animation: pulse 3s ease-in-out infinite;
+      opacity: 0.85;
+      animation: breathe 6s ease-in-out infinite;
     }
 
-    @keyframes pulse {
+    @keyframes breathe {
       0%, 100% {
-        opacity: 0.8;
-        transform: scale(1);
+        opacity: 0.7;
       }
       50% {
-        opacity: 1;
-        transform: scale(1.03);
+        opacity: 0.95;
       }
     }
   </style>
 </head>
 <body>
 
-  <canvas id="waves"></canvas>
+  <canvas id="bg"></canvas>
 
   <div class="center">
-    <h1>In Development</h1>
+    <h1>In development</h1>
   </div>
 
   <script>
-    const canvas = document.getElementById('waves');
+    const canvas = document.getElementById('bg');
     const ctx = canvas.getContext('2d');
 
     function resize() {
@@ -76,42 +73,34 @@
     window.addEventListener('resize', resize);
     resize();
 
-    let time = 0;
+    let t = 0;
 
-    function drawWave(yOffset, amplitude, speed, opacity) {
+    function wave(y, amp, freq, speed, alpha) {
       ctx.beginPath();
-      for (let x = 0; x <= canvas.width; x += 10) {
-        const y =
-          Math.sin((x * 0.01) + time * speed) * amplitude +
-          yOffset;
-        ctx.lineTo(x, y);
+      for (let x = 0; x < canvas.width; x += 12) {
+        const noise = Math.sin(x * 0.01 + t * speed + Math.random() * 0.2);
+        const yPos = y + noise * amp;
+        ctx.lineTo(x, yPos);
       }
-      ctx.strokeStyle = `rgba(0, 170, 255, ${opacity})`;
-      ctx.lineWidth = 1.2;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = 'rgba(0,170,255,0.6)';
+      ctx.strokeStyle = `rgba(90, 170, 255, ${alpha})`;
+      ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.closePath();
     }
 
-    function animate() {
+    function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = 'lighter';
 
-      for (let i = 0; i < 8; i++) {
-        drawWave(
-          canvas.height / 2 + i * 25 - 100,
-          30 + i * 5,
-          0.8 + i * 0.1,
-          0.15
-        );
-      }
+      ctx.globalCompositeOperation = 'source-over';
 
-      time += 0.02;
-      requestAnimationFrame(animate);
+      wave(canvas.height * 0.45, 18, 0.01, 0.6, 0.08);
+      wave(canvas.height * 0.52, 22, 0.008, 0.4, 0.06);
+      wave(canvas.height * 0.6, 16, 0.012, 0.8, 0.05);
+
+      t += 0.01;
+      requestAnimationFrame(draw);
     }
 
-    animate();
+    draw();
   </script>
 
 </body>
