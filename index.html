@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>/glfw Obfuscateur Lua FINAL - Pour ton Silent Aim</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e1e1e; color: #ddd; padding: 20px; }
+        textarea { width: 100%; height: 350px; background: #2d2d2d; color: #fff; border: 1px solid #555; font-family: Consolas, monospace; }
+        button { padding: 10px 20px; margin: 10px 0; background: #007acc; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a99; }
+        select, input[type="checkbox"] { margin: 5px 10px; }
+        .container { max-width: 1200px; margin: auto; }
+        h1 { color: #007acc; }
+        .warning { color: #ff6666; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Obfuscateur Lua FINAL - Compatible Silent Aim Rayfield</h1>
+        <p class="warning">Commence avec Junk, Control Flow et Anti-Tamper DÉCOCHÉS pour éviter les erreurs. Active un par un après.</p>
+        <p>Ton script Rayfield devrait passer nickel maintenant !</p>
+        
+        <label>Mode String Encoding:</label>
+        <select id="stringMode">
+            <option value="char">string.char (recommandé)</option>
+            <option value="concat">Concaténation (..)</option>
+            <option value="xor">XOR + base64</option>
+        </select>
+        
+        <br>
+        <label><input type="checkbox" id="enable433 Rename" checked> Activer renommage variables</label>
+        <label><input type="checkbox" id="enableJunk"> Activer Junk Code</label>
+        <label><input type="checkbox" id="enableControlFlow"> Activer Control Flow (opaque predicates)</label>
+        <label><input type="checkbox" id="enableAntiTamper"> Activer Anti-Tamper (compatible old executors)</label>
+        
+        <textarea id="input" placeholder="-- Colle ton script Silent Aim ici"></textarea>
+        
+        <button onclick="obfuscate()">Obfuscate</button>
+        
+        <textarea id="output" placeholder="-- Code obfuscé ici (copie et teste !)"></textarea>
+    </div>
+
+    <script>
+        const keywords = new Set(["and","break","do","else","elseif","end","false","for","function","goto","if","in","local","nil","not","or","repeat","return","then","true","until","while","spawn","wait"]);
+
+        function randomName() {
+            return "_obf_" + Math.random().toString(36).substring(2, 10);
+        }
+
+        function encryptString(str, mode) {
+            if (str.length === 0) return '""';
+            if (mode === "char") {
+                let chars = [...str].map(c => c.charCodeAt(0));
+                return `string.char(${chars.join(",")})`;
+            } else if (mode === "concat") {
+                return "(" + [...str].map(c => `"${c}"`).join("..") + ")";
+            } else if (mode === "xor") {
+                let key = 0x5A;
+                let enc = [...str].map(c => c.charCodeAt(0) ^ key);
+                let b64 = btoa(String.fromCharCode(...enc));
+                return `(function(s)local k=0x5A local t={} for i=1,#s do t[#t+1]=string.char(string.byte(s,i)~k) end return table.concat(t)end)(atob("${b64}"))`;
+            }
+            return '""';
+        }
+
+        function addJunk() {
+            const junks = [
+                "local _ = math.random(1,100000);",
+                "for _=1,3 do end;",
+                "local _ = tostring({});",
+            ];
+            return junks[Math.floor(Math.random() * junks.length)];
+        }
+
+        function addOpaquePredicate() {
+            return "if true then"; // Toujours safe
+        }
+
+        function addAntiTamper() {
+            if (!document.getElementById("enableAntiTamper").checked) return "";
+            return `
+-- Anti-Tamper compatible (old/new executors)
+spawn(function()
+    while wait(10) do
+        if debug.getinfo(2) then error("Debug détecté !") end
+    end
+end)
+`;
+        }
+
+        function obfuscate() {
+            let code = document.getElementById("input").value.trim();
+            const mode = document.getElementById("stringMode").value;
+            const enableRename = document.getElementById("enableRename").checked;
+            const enableJunk = document.getElementById("enableJunk").checked;
+            const enableControlFlow = document.getElementById("enableControlFlow").checked;
+
+            // 1. String encoding (safe pour ' et ")
+            code = code.replace(/("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*')/g, (match, dq, sq) => {
+                const str = dq ? dq.slice(1, -1) : (sq ? sq.slice(1, -1) : '');
+                if (str.length <= 4) return match; // Garde les petits intacts
+                return encryptString(str, mode);
+            });
+
+            // 2. Renommage variables
+            if (enableRename) {
+                const varMap = {};
+                code = code.replace(/\b(local\s+)?([a-zA-Z_]\w*)\b/g, (match, localPart, name) => {
+                    if (keywords.has(name)) return match;
+                    if (!varMap[name]) varMap[name] = randomName();
+                    return (localPart || "") + varMap[name];
+                });
+            }
+
+            // 3. Junk + control flow (seulement si activé)
+            let lines = code.split('\n');
+            let newLines = [];
+            for (let line of lines) {
+                newLines.push(line.trimEnd());
+                if (enableJunk && Math.random() < 0.15) newLines.push(addJunk());
+                if (enableControlFlow && Math.random() < 0.08) {
+                    newLines.push(addOpaquePredicate());
+                    if (enableJunk) newLines.push(addJunk());
+                    newLines.push("end");
+                }
+            }
+            code = newLines.join("\n");
+
+            // 4. Wrapper safe
+            const wrapper = `(function()
+${addAntiTamper()}
+${code}
+end)()`;
+
+            document.getElementById("output").value = wrapper;
+        }
+    </script>
+</body>
+</html>
